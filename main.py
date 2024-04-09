@@ -10,6 +10,13 @@ screen = pygame.display.set_mode((screen_width, screen_height))
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 
+cuboid_colors = [
+    (255, 0, 0),     # Red
+    (0, 255, 0),     # Green
+    (0, 0, 255),     # Blue
+    (255, 255, 0),   # Yellow
+]
+
 vertices = [
     [100, 100, 100], [150, 100, 100], [150, -50, 100], [100, -50, 100],
     [100, 100, 200], [150, 100, 200], [150, -50, 200], [100, -50, 200],
@@ -36,25 +43,38 @@ edges = [
     (24, 28), (25, 29), (26, 30), (27, 31),
 ]
 
+cuboids_edges = [
+    edges[0:12],
+    edges[12:24],
+    edges[24:36],
+    edges[36:48]
+]
+
+
 def project(vertex):
     x, y, z = vertex
     d = 500
+    near = 0.1
+    if z < near:
+        return None
+
     projection_matrix = np.array([
         [1, 0, 0, 0],
         [0, 1, 0, 0],
         [0, 0, 1, 0],
-        [0, 0, 1/d, 0]
+        [0, 0, 1 / d, 0]
     ])
 
     homogeneous_vertex = np.array([x, y, z, 1])
     projected_homogeneous_vertex = projection_matrix.dot(homogeneous_vertex)
+
     projected_vertex = projected_homogeneous_vertex / projected_homogeneous_vertex[3]
-    if projected_vertex[3] == 0:
-        projected_vertex[3] = 0.01
+
     projected_x = int((projected_vertex[0] / projected_vertex[2]) * d + screen_width / 2)
     projected_y = int((-projected_vertex[1] / projected_vertex[2]) * d + screen_height / 2)
 
     return projected_x, projected_y
+
 
 def translate(vertices, x_direction, y_direction, z_direction):
     translation_matrix = np.array([
@@ -71,79 +91,89 @@ def translate(vertices, x_direction, y_direction, z_direction):
         translated_vertices.append(translated_vertex[:-1].tolist())
     return translated_vertices
 
+
 def rotate_x(vertices, angle):
     cos_a, sin_a = np.cos(np.radians(angle)), np.sin(np.radians(angle))
     rotation_matrix = np.array([
-        [1, 0,     0,    0],
+        [1, 0, 0, 0],
         [0, cos_a, -sin_a, 0],
         [0, sin_a, cos_a, 0],
-        [0, 0,     0,    1]
+        [0, 0, 0, 1]
     ])
     rotated_vertices = []
     for vertex in vertices:
-        homogenous_vertex = np.array(vertex+[1])
+        homogenous_vertex = np.array(vertex + [1])
         rotated_vertex = rotation_matrix.dot(homogenous_vertex)
         rotated_vertices.append(rotated_vertex[:-1].tolist())
     return rotated_vertices
+
 
 def rotate_y(vertices, angle):
     cos_a, sin_a = np.cos(np.radians(angle)), np.sin(np.radians(angle))
     rotation_matrix = np.array([
-        [cos_a, 0,     sin_a,    0],
+        [cos_a, 0, sin_a, 0],
         [0, 1, 0, 0],
         [-sin_a, 0, cos_a, 0],
-        [0, 0,     0,    1]
+        [0, 0, 0, 1]
     ])
     rotated_vertices = []
     for vertex in vertices:
-        homogenous_vertex = np.array(vertex+[1])
+        homogenous_vertex = np.array(vertex + [1])
         rotated_vertex = rotation_matrix.dot(homogenous_vertex)
         rotated_vertices.append(rotated_vertex[:-1].tolist())
     return rotated_vertices
+
 
 def rotate_z(vertices, angle):
     cos_a, sin_a = np.cos(np.radians(angle)), np.sin(np.radians(angle))
     rotation_matrix = np.array([
-        [cos_a, -sin_a,  0,    0],
+        [cos_a, -sin_a, 0, 0],
         [sin_a, cos_a, 0, 0],
         [0, 0, 1, 0],
-        [0, 0,     0,    1]
+        [0, 0, 0, 1]
     ])
     rotated_vertices = []
     for vertex in vertices:
-        homogenous_vertex = np.array(vertex+[1])
+        homogenous_vertex = np.array(vertex + [1])
         rotated_vertex = rotation_matrix.dot(homogenous_vertex)
         rotated_vertices.append(rotated_vertex[:-1].tolist())
     return rotated_vertices
 
+
 def zoom(vertices, value):
     zoom_matrix = np.array([
-        [value, 0,  0,    0],
+        [value, 0, 0, 0],
         [0, value, 0, 0],
         [0, 0, value, 0],
-        [0, 0,     0,    1]
+        [0, 0, 0, 1]
     ])
     zoomed_vertices = []
     for vertex in vertices:
-        homogenous_vertex = np.array(vertex+[1])
+        homogenous_vertex = np.array(vertex + [1])
         zoomed_vertex = zoom_matrix.dot(homogenous_vertex)
         zoomed_vertices.append(zoomed_vertex[:-1].tolist())
     return zoomed_vertices
 
 
-
-
 def draw():
     screen.fill(BLACK)
-    for edge in edges:
-        points = []
-        for vertex in edge:
-            point = project(vertices[vertex])
-            points.append(point)
-        pygame.draw.line(screen, WHITE, points[0], points[1], 1)
+    for cuboid_index, cuboid_edges in enumerate(cuboids_edges):
+        color = cuboid_colors[cuboid_index % len(cuboid_colors)]
+        for edge in cuboid_edges:
+            points = []
+            for vertex_index in edge:
+                vertex = vertices[vertex_index]
+                point = project(vertex)
+                if point is not None:
+                    points.append(point)
+
+            if len(points) == 2:
+                pygame.draw.line(screen, color, points[0], points[1], 1)
     pygame.display.flip()
 
+
 running = True
+
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -168,9 +198,9 @@ while running:
             elif event.key == pygame.K_z:
                 vertices = rotate_z(vertices, 5)
             elif event.key == pygame.K_n:
-                vertices = zoom(vertices, 1.1)
+                vertices = zoom(vertices, 1.5)
             elif event.key == pygame.K_m:
-                vertices = zoom(vertices, 0.9)
+                vertices = zoom(vertices, 0.5)
 
     draw()
 

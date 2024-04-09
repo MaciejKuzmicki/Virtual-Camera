@@ -1,5 +1,5 @@
 import pygame
-import sys
+import datetime
 import numpy as np
 
 pygame.init()
@@ -9,6 +9,8 @@ screen = pygame.display.set_mode((screen_width, screen_height))
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
+
+d = 500
 
 cuboid_colors = [
     (255, 0, 0),     # Red
@@ -53,7 +55,6 @@ cuboids_edges = [
 
 def project(vertex):
     x, y, z = vertex
-    d = 500
     near = 0.1
     if z < near:
         return None
@@ -139,22 +140,6 @@ def rotate_z(vertices, angle):
         rotated_vertices.append(rotated_vertex[:-1].tolist())
     return rotated_vertices
 
-
-def zoom(vertices, value):
-    zoom_matrix = np.array([
-        [value, 0, 0, 0],
-        [0, value, 0, 0],
-        [0, 0, value, 0],
-        [0, 0, 0, 1]
-    ])
-    zoomed_vertices = []
-    for vertex in vertices:
-        homogenous_vertex = np.array(vertex + [1])
-        zoomed_vertex = zoom_matrix.dot(homogenous_vertex)
-        zoomed_vertices.append(zoomed_vertex[:-1].tolist())
-    return zoomed_vertices
-
-
 def draw():
     screen.fill(BLACK)
     for cuboid_index, cuboid_edges in enumerate(cuboids_edges):
@@ -198,10 +183,12 @@ while running:
             elif event.key == pygame.K_z:
                 vertices = rotate_z(vertices, 5)
             elif event.key == pygame.K_n:
-                vertices = zoom(vertices, 1.5)
+                d *= 0.9
             elif event.key == pygame.K_m:
-                vertices = zoom(vertices, 0.5)
-
+                d *= 1.1
+            elif event.key == pygame.K_s:
+                filename = f"screenshot_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.png"
+                pygame.image.save(screen, filename)
     draw()
 
 pygame.quit()

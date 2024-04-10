@@ -11,6 +11,7 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 
 d = 500
+near = 0.1
 
 cuboid_colors = [
     (255, 0, 0),     # Red
@@ -53,9 +54,18 @@ cuboids_edges = [
 ]
 
 
+def interpolate(v0, v1, t):
+    return v0 + t * (v1 - v0)
+
+def clip_edge(v0, v1):
+    t = (near - v0[2]) / (v1[2] - v0[2])
+    x = interpolate(v0[0], v1[0], t)
+    y = interpolate(v0[1], v1[1], t)
+    z = near
+    return [x, y, z]
+
 def project(vertex):
     x, y, z = vertex
-    near = 0.1
     if z < near:
         return None
 
@@ -145,15 +155,20 @@ def draw():
     for cuboid_index, cuboid_edges in enumerate(cuboids_edges):
         color = cuboid_colors[cuboid_index % len(cuboid_colors)]
         for edge in cuboid_edges:
-            points = []
-            for vertex_index in edge:
-                vertex = vertices[vertex_index]
-                point = project(vertex)
-                if point is not None:
-                    points.append(point)
+            v0, v1 = [vertices[i] for i in edge]
+            p0 = project(v0)
+            p1 = project(v1)
+            if v0[2] < near and v1[2] < near:
+                continue
+            if v0[2] < near:
+                v0 = clip_edge(v0, v1)
+                p0 = project(v0)
+            elif v1[2] < near:
+                v1 = clip_edge(v1, v0)
+                p1 = project(v1)
 
-            if len(points) == 2:
-                pygame.draw.line(screen, color, points[0], points[1], 1)
+            if p0 and p1:
+                pygame.draw.line(screen, color, p0, p1, 1)
     pygame.display.flip()
 
 

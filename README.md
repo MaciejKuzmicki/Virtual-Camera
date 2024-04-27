@@ -15,7 +15,7 @@
 
   <img src="screenshots/screenshot_2024-04-26_21-13-31.png">
 
-  # Painters algorithm
+  # Painter algorithm
 
   <p>
   The Painters Algorithm Project is a Python-based application utilizing the pygame library to implement the Painter's algorithm, a technique used in computer graphics to render 3D objects on a 2D display by sorting surfaces by depth and drawing them in correct back-to-front order. Users can manipulate and navigate through a virtual space filled with colorful cuboids.
